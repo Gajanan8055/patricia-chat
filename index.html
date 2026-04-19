@@ -160,6 +160,18 @@
             margin-top: 4px;
         }
         
+        .message.system {
+            justify-content: center;
+        }
+        
+        .message.system .message-content {
+            background: #fee2e2;
+            color: #991b1b;
+            font-size: 12px;
+            max-width: 90%;
+            text-align: center;
+        }
+        
         .typing-indicator {
             display: none;
             padding: 15px 20px;
@@ -225,6 +237,12 @@
             border-color: #667eea;
         }
         
+        .chat-input:disabled {
+            background: #f1f5f9;
+            color: #94a3b8;
+            cursor: not-allowed;
+        }
+        
         .send-btn {
             width: 45px;
             height: 45px;
@@ -236,16 +254,21 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
         }
         
-        .send-btn:hover {
+        .send-btn:hover:not(:disabled) {
             transform: scale(1.05);
             box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
         }
         
-        .send-btn:active {
+        .send-btn:active:not(:disabled) {
             transform: scale(0.95);
+        }
+        
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
         
         .welcome-banner {
@@ -277,10 +300,15 @@
             transition: all 0.2s;
         }
         
-        .chip:hover {
+        .chip:hover:not(.disabled) {
             background: #e0e7ff;
             border-color: #667eea;
             color: #4338ca;
+        }
+        
+        .chip.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
         
         @media (max-width: 600px) {
@@ -324,7 +352,7 @@
             </div>
         </div>
         
-        <div class="suggestion-chips">
+        <div class="suggestion-chips" id="suggestionChips">
             <span class="chip" onclick="sendQuickMessage('Do you do custom synthesis?')">Do you do custom synthesis?</span>
             <span class="chip" onclick="sendQuickMessage('What are your prices?')">What are your prices?</span>
             <span class="chip" onclick="sendQuickMessage('Can you manufacture 5kg API?')">Can you manufacture 5kg API?</span>
@@ -333,7 +361,7 @@
         <div class="chat-input-container">
             <div class="input-wrapper">
                 <input type="text" class="chat-input" id="messageInput" placeholder="Type your inquiry..." onkeypress="handleKeyPress(event)">
-                <button class="send-btn" onclick="sendMessage()">
+                <button class="send-btn" id="sendBtn" onclick="sendMessage()">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
                     </svg>
@@ -343,10 +371,32 @@
     </div>
 
     <script>
-        const API_URL = 'https://api.openai.com/v1/chat/completions'; // Will use demo mode if no API key
-
-// Demo responses ( Patricia's voice)
+        // Track conversation state
+        let userOptedOut = false;
+        let conversationEnded = false;
         
+        // Opt-out keywords - detects when user wants to stop
+        const OPT_OUT_KEYWORDS = [
+            'not interested', 'unsubscribe', 'stop', 'no thanks', 'no thank you',
+            'dont contact me', "don't contact me", 'remove me', 'take me off',
+            'opt out', 'opt-out', 'leave me alone', 'go away', 'spam',
+            'not looking', 'not in market', 'wrong person', 'cease', 'bye',
+            'goodbye', 'end this', 'close this', 'we are done', 'not now'
+        ];
+        
+        function hasOptedOut(message) {
+            const lower = message.toLowerCase();
+            return OPT_OUT_KEYWORDS.some(keyword => lower.includes(keyword));
+        }
+        
+        const OPT_OUT_RESPONSE = `Understood — I completely respect that.
+
+I'll make sure we don't reach out again about CDMO services. If anything changes on your end in the future, feel free to contact us directly at morepenpdr.com.
+
+Wishing you the best with your projects.
+
+Patricia`;
+
         const DEMO_RESPONSES = {
             initial: `Hi there,
 
@@ -395,10 +445,15 @@ Patricia`
 
         let messageHistory = [];
 
-        function addMessage(text, isUser = false) {
+        function addMessage(text, isUser = false, isSystem = false) {
             const messagesContainer = document.getElementById('chatMessages');
             const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${isUser ? 'user' : 'patricia'}`;
+            
+            if (isSystem) {
+                messageDiv.className = 'message system';
+            } else {
+                messageDiv.className = `message ${isUser ? 'user' : 'patricia'}`;
+            }
             
             const time = new Date().toLocaleTimeString('en-US', { 
                 hour: 'numeric', 
@@ -406,13 +461,20 @@ Patricia`
                 hour12: true 
             });
             
-            messageDiv.innerHTML = `
-                <div class="message-avatar">${isUser ? '👤' : '👩‍💼'}</div>
-                <div>
+            if (isSystem) {
+                messageDiv.innerHTML = `
                     <div class="message-content">${escapeHtml(text).replace(/\n/g, '<br>')}</div>
                     <div class="message-time">${time}</div>
-                </div>
-            `;
+                `;
+            } else {
+                messageDiv.innerHTML = `
+                    <div class="message-avatar">${isUser ? '👤' : '👩‍💼'}</div>
+                    <div>
+                        <div class="message-content">${escapeHtml(text).replace(/\n/g, '<br>')}</div>
+                        <div class="message-time">${time}</div>
+                    </div>
+                `;
+            }
             
             messagesContainer.appendChild(messageDiv);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -431,8 +493,35 @@ Patricia`
         function hideTyping() {
             document.getElementById('typingIndicator').classList.remove('active');
         }
+        
+        function disableInput() {
+            const input = document.getElementById('messageInput');
+            const sendBtn = document.getElementById('sendBtn');
+            const chips = document.querySelectorAll('.chip');
+            
+            input.disabled = true;
+            input.placeholder = 'Conversation ended';
+            sendBtn.disabled = true;
+            
+            chips.forEach(chip => {
+                chip.classList.add('disabled');
+                chip.onclick = null;
+            });
+        }
 
         function generateResponse(userMessage) {
+            // Check if user opted out
+            if (hasOptedOut(userMessage)) {
+                userOptedOut = true;
+                conversationEnded = true;
+                return OPT_OUT_RESPONSE;
+            }
+            
+            // Don't respond if already opted out
+            if (userOptedOut || conversationEnded) {
+                return null;
+            }
+            
             const lower = userMessage.toLowerCase();
             
             if (lower.includes('cost') || lower.includes('price') || lower.includes('$')) {
@@ -450,23 +539,45 @@ Patricia`
             
             if (!message) return;
             
+            // Check if conversation already ended
+            if (userOptedOut || conversationEnded) {
+                addMessage("🔇 This conversation has ended. You previously opted out of further communication. Refresh the page to start a new conversation.", true, true);
+                input.value = '';
+                return;
+            }
+            
             // Add user message
             addMessage(message, true);
             input.value = '';
             
-            // Show typing
-            showTyping();
-            
-            // Simulate network delay (realistic)
-            await new Promise(r => setTimeout(r, 1500 + Math.random() * 1000));
-            
-            // Generate and add Patricia's response
+            // Generate response
             const response = generateResponse(message);
-            hideTyping();
-            addMessage(response, false);
+            
+            if (response) {
+                // Show typing indicator
+                showTyping();
+                
+                // Simulate realistic delay
+                await new Promise(r => setTimeout(r, 1500 + Math.random() * 1000));
+                
+                hideTyping();
+                addMessage(response, false);
+                
+                // If user opted out, disable further input
+                if (userOptedOut) {
+                    disableInput();
+                }
+            } else if (userOptedOut) {
+                // User already opted out, show system message
+                addMessage("This conversation has ended. Refresh to start a new chat.", true, true);
+            }
         }
 
         function sendQuickMessage(text) {
+            if (userOptedOut || conversationEnded) {
+                addMessage("🔇 This conversation has ended. Refresh the page to start a new conversation.", true, true);
+                return;
+            }
             document.getElementById('messageInput').value = text;
             sendMessage();
         }
