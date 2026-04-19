@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patricia - Morepen PDR Sales Agent</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .chat-container {
+            width: 100%;
+            max-width: 600px;
+            height: 80vh;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .chat-header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        
+        .header-info h1 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .header-info p {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-top: 2px;
+        }
+        
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #4ade80;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8fafc;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .message.user {
+            flex-direction: row-reverse;
+        }
+        
+        .message-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+        
+        .message.patricia .message-avatar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .message.user .message-avatar {
+            background: #e2e8f0;
+        }
+        
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            line-height: 1.5;
+            font-size: 14px;
+        }
+        
+        .message.patricia .message-content {
+            background: white;
+            color: #1e293b;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .message-time {
+            font-size: 11px;
+            color: #94a3b8;
+            margin-top: 4px;
+        }
+        
+        .typing-indicator {
+            display: none;
+            padding: 15px 20px;
+            background: white;
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        .typing-indicator.active {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .typing-text {
+            font-size: 12px;
+            color: #64748b;
+        }
+        
+        .dots {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .dot {
+            width: 6px;
+            height: 6px;
+            background: #94a3b8;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+        
+        .dot:nth-child(1) { animation-delay: 0s; }
+        .dot:nth-child(2) { animation-delay: 0.2s; }
+        .dot:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes bounce {
+            0%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-8px); }
+        }
+        
+        .chat-input-container {
+            padding: 15px 20px;
+            background: white;
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        .input-wrapper {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 25px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        
+        .chat-input:focus {
+            border-color: #667eea;
+        }
+        
+        .send-btn {
+            width: 45px;
+            height: 45px;
+            border: none;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .send-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .send-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .welcome-banner {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            font-size: 12px;
+            color: #92400e;
+            text-align: center;
+        }
+        
+        .suggestion-chips {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding: 0 20px 15px;
+            background: white;
+        }
+        
+        .chip {
+            padding: 8px 14px;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            font-size: 12px;
+            color: #475569;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .chip:hover {
+            background: #e0e7ff;
+            border-color: #667eea;
+            color: #4338ca;
+        }
+        
+        @media (max-width: 600px) {
+            .chat-container {
+                height: 100vh;
+                border-radius: 0;
+            }
+            
+            body {
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="avatar">👩‍💼</div>
+            <div class="header-info">
+                <h1>Patricia</h1>
+                <p>Business Development Manager</p>
+                <div class="status">
+                    <span class="status-dot"></span>
+                    <span>Online</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <div class="welcome-banner">
+                💬 Test Mode — This is a demo of how Patricia responds to CDMO inquiries
+            </div>
+        </div>
+        
+        <div class="typing-indicator" id="typingIndicator">
+            <span class="typing-text">Patricia is typing</span>
+            <div class="dots">
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+            </div>
+        </div>
+        
+        <div class="suggestion-chips">
+            <span class="chip" onclick="sendQuickMessage('Do you do custom synthesis?')">Do you do custom synthesis?</span>
+            <span class="chip" onclick="sendQuickMessage('What are your prices?')">What are your prices?</span>
+            <span class="chip" onclick="sendQuickMessage('Can you manufacture 5kg API?')">Can you manufacture 5kg API?</span>
+        </div>
+        
+        <div class="chat-input-container">
+            <div class="input-wrapper">
+                <input type="text" class="chat-input" id="messageInput" placeholder="Type your inquiry..." onkeypress="handleKeyPress(event)">
+                <button class="send-btn" onclick="sendMessage()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://api.openai.com/v1/chat/completions'; // Will use demo mode if no API key
+
+// Demo responses ( Patricia's voice)
+        
+        const DEMO_RESPONSES = {
+            initial: `Hi there,
+
+Thanks for reaching out — I got your inquiry about custom synthesis.
+
+Before I point you toward the right team or solution, could you help me understand a bit more about where you are in the process? Specifically:
+
+• What stage is your project at — early discovery, pre-clinical, or moving toward clinical batches?
+• Roughly what scale are you thinking — are we talking grams for initial studies, or do you need kilos for Phase I?
+• Any specific regulatory pathway you're targeting (GMP requirements, DMF support needed)?
+
+We work with everything from virtual pharma startups that need full support to established companies looking to supplement internal capacity, so there's no "right" answer here. Just trying to understand how we can actually be useful.
+
+Talk soon,
+Patricia`,
+
+            specific: `That's a really interesting molecule — we've done similar work in that therapeutic area recently.
+
+A few questions to scope this properly:
+
+• What's your target quantity and timeline? Helps me understand if this is a quick route assessment or a full development campaign.
+• Do you have a preferred synthetic route in mind, or should we propose options? Some clients come in with IP constraints or specific starting materials; others want us to optimize from scratch.
+• Any analytical specifications or impurity profiles you need to meet?
+
+I can have our chemistry team pull together a preliminary route analysis and rough pricing within 2-3 business days. Would that timeline work for your planning?
+
+Best,
+Patricia
+
+P.S. — If this is time-sensitive for a grant application or investor timeline, just let me know and I'll flag it for priority review.`,
+
+            price: `Totally understand needing budget numbers — let me be straight with you about how we approach this.
+
+For a project like yours at that scale, the cost depends on a few variables that can swing the chemistry significantly:
+
+• Route complexity — number of steps, stereochemistry requirements
+• Starting material availability and pricing (we have relationships with Indian suppliers that sometimes aren't in standard databases)
+• Purity specs and regulatory requirements (GMP vs. non-GMP changes everything)
+
+Rather than give you a ballpark that might be off by 2x either direction, I'd rather do a quick route analysis. Takes 3-4 days, costs nothing, and gives you a number you can actually trust.
+
+Would that be useful? Or if you need something faster, tell me what assumptions you've been working with and I can validate or adjust them quickly.
+
+Patricia`
+        };
+
+        let messageHistory = [];
+
+        function addMessage(text, isUser = false) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'patricia'}`;
+            
+            const time = new Date().toLocaleTimeString('en-US', { 
+                hour: 'numeric', 
+                minute: '2-digit',
+                hour12: true 
+            });
+            
+            messageDiv.innerHTML = `
+                <div class="message-avatar">${isUser ? '👤' : '👩‍💼'}</div>
+                <div>
+                    <div class="message-content">${escapeHtml(text).replace(/\n/g, '<br>')}</div>
+                    <div class="message-time">${time}</div>
+                </div>
+            `;
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showTyping() {
+            document.getElementById('typingIndicator').classList.add('active');
+        }
+
+        function hideTyping() {
+            document.getElementById('typingIndicator').classList.remove('active');
+        }
+
+        function generateResponse(userMessage) {
+            const lower = userMessage.toLowerCase();
+            
+            if (lower.includes('cost') || lower.includes('price') || lower.includes('$')) {
+                return DEMO_RESPONSES.price;
+            } else if (lower.includes('kg') || lower.includes('manufacture') || lower.includes('api') || userMessage.length > 50) {
+                return DEMO_RESPONSES.specific;
+            } else {
+                return DEMO_RESPONSES.initial;
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Add user message
+            addMessage(message, true);
+            input.value = '';
+            
+            // Show typing
+            showTyping();
+            
+            // Simulate network delay (realistic)
+            await new Promise(r => setTimeout(r, 1500 + Math.random() * 1000));
+            
+            // Generate and add Patricia's response
+            const response = generateResponse(message);
+            hideTyping();
+            addMessage(response, false);
+        }
+
+        function sendQuickMessage(text) {
+            document.getElementById('messageInput').value = text;
+            sendMessage();
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        // Welcome message
+        window.onload = function() {
+            setTimeout(() => {
+                addMessage(`Hi there! I'm Patricia, Business Development Manager at Morepen PDR. 
+
+I help pharmaceutical companies with custom synthesis, API manufacturing, and CDMO services.
+
+What brings you here today? Feel free to ask about our services or tell me about your project.`, false);
+            }, 500);
+        };
+    </script>
+</body>
+</html>
